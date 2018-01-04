@@ -6,14 +6,10 @@ html
     h1 로그인
 
     div
-      form(action="/check", method="POST")
+      form(action="/login", method="POST")
         p
-          input.form-control(name="id", type="text", placeholder="abc@gmail.com")
+          input.form-control(name="username", type="text", placeholder="abc@gmail.com")
         p
           input.form-control(name="password", type="password", placeholder="********")
         p
           button.btn.btn-lg.btn-primary.btn-block(type="submit") Log in
-    div
-      form(action="/create", method="GET")
-        p
-          button.btn.btn-lg.btn-primary.btn-block(type="submit") Create
