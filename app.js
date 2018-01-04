@@ -118,28 +118,15 @@ app.post('/login',
     }
   )
 );
-// app.post('/login', function(req, res) {
-//   var user = {
-//     id:'cing',
-//     password:'111',
-//     name:'차세민'
-//   };
-//   var id = req.body.id;
-//   var password = req.body.password;
-//   if(id===user.id && password === user.password) {
-//     req.session.displayName = user.name;
-//     req.session.save(function(){
-//       res.redirect('/user');
-//     });
-//   } else {
-//     res.render('login');
-//   }
-// })
 
 //---------------유저 관련 페이지
 app.get('/user', function(req, res) {
   if(req.user) {
-    res.render('user');
+    if(req.user.username === 'admin') {
+      res.redirect('/admin');
+    } else {
+      res.render('user');
+    }
   } else {
     res.redirect('/');
   }
@@ -147,12 +134,30 @@ app.get('/user', function(req, res) {
 
 // 회원탈퇴
 app.get('/drop', function(req, res) {
-  //delete req.session.displayName;
-  req.logout();
-  req.session.save(function(){
+  if(req.user && req.user.username !== 'admin') {
+    var sql = "DELETE FROM users WHERE authId=?";
+    conn.query(sql, ['local:'+req.user.username], function(err, results) {
+      if(err) {
+        console.log(err);
+        res.status(500);
+      } else {
+        req.logout();
+        req.session.save(function(){
+          res.redirect('/');
+        });
+      }
+    });
+  } else {
     res.redirect('/');
-  });
+  }
 });
 
 
 //---------------관리자 관련 페이지
+app.get('/admin', function(req, res) {
+  if(req.user) {
+      res.render('admin');
+  } else {
+    res.redirect('/');
+  }
+});
