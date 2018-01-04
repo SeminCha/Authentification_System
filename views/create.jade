@@ -8,13 +8,13 @@ html
     div
       form(action="/create", method="POST")
         p
-          label(for='name') 아이디 :
-          input.form-control(name="id", type="text", placeholder="abc@gmail.com")
+          label(for='username') 아이디 :
+          input.form-control(name="username", type="text", placeholder="id")
         p
           label(for='password') 비밀번호 :
           input.form-control(name="password", type="password", placeholder="********")
         p
-          label(for='email') 이름 :
-          input.form-control(name="name", type="text", placeholder="홍길동")
+          label(for='displayName') 이름 :
+          input.form-control(name="displayName", type="text", placeholder="홍길동")
         p
           button.btn.btn-lg.btn-primary.btn-block(type="submit") 완료

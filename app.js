@@ -3,7 +3,17 @@ var bodyParser = require('body-parser');
 var session = require('express-session');
 var MySQLStore = require('express-mysql-session')(session);
 var passport = require('passport');
+var bkfd2Password = require('pbkdf2-password');
+var hasher = bkfd2Password();
 var LocalStrategy = require('passport-local').Strategy;
+var mysql = require('mysql');
+var conn = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: '111111',
+  database: 'o2'
+});
+conn.connect;
 var app = express();
 app.locals.pretty=true;
 app.use(bodyParser.urlencoded({ extended:false}));
@@ -39,47 +49,64 @@ app.get('/create', function(req, res) {
 
 //회원가입 버튼 완료 클릭 후
 app.post('/create', function(req, res) {
-  var id = req.body.id;
-  var password = req.body.password;
-  var name = req.body.name;
-  res.redirect('/');
+  hasher({password:req.body.password}, function(err, pass, salt, hash) {
+    var user = {
+      authId:'local:'+req.body.username,
+      username:req.body.username,
+      password:hash,
+      salt:salt,
+      displayName:req.body.displayName
+    };
+    var sql = 'INSERT INTO users SET ?';
+    conn.query(sql, user, function(err, results){
+      if(err) {
+        console.log(err);
+        res.status(500);
+      } else {
+        res.redirect('/');
+      }
+    });
+  });
 });
 //로그인 버튼 클릭
 app.get('/login', function(req, res) {
   res.render('login');
 });
 passport.serializeUser(function(user, done) {
-  done(null, user.username);
+  console.log('serializeUser', user);
+  done(null, user.authId);
 });
-
 passport.deserializeUser(function(id, done) {
-  var user = {
-    id:'cing',
-    password:'111',
-    name:'차세민'
-  };
-  User.findById(id, function(err, user) {
-    if(id===user.id) {
-      done(null, id);
+  console.log('deserializeUser', id);
+  var sql = 'SELECT * FROM users WHERE authId=?';
+  conn.query(sql, [id], function(err, results) {
+    console.log(sql, err, results);
+    if(err) {
+      done('There is no user.');
+    } else {
+      done(null, results[0]);
     }
   });
 });
 passport.use(new LocalStrategy(
   function(username, password, done) {
-      var user = {
-        id:'cing',
-        password:'111',
-        name:'차세민'
-      };
-      var id = username;
-      var password = password;
-      if(id===user.id && password === user.password) {
-        done(null, id);
-      } else {
-        done(null, false);
-      }
-  }
-));
+      var uname= username;
+      var pwd = password;
+      var sql = "SELECT * FROM users WHERE authId=?";
+      conn.query(sql, ['local:'+uname], function(err, results) {
+        if(err){
+          return done('There is no user.');
+        }
+        var user = results[0];
+        return hasher({password:password, salt:user.salt}, function(err, pass, salt, hash){
+         if(hash === user.password) {
+            done(null, user);
+         } else {
+            done(null, false);
+         }
+        });
+      });
+}));
 // 로그인 버튼클릭 후 유저인지 관리자인지 체크
 app.post('/login',
   passport.authenticate(
@@ -111,7 +138,7 @@ app.post('/login',
 
 //---------------유저 관련 페이지
 app.get('/user', function(req, res) {
-  if(req.session.displayName) {
+  if(req.user) {
     res.render('user');
   } else {
     res.redirect('/');
@@ -120,7 +147,8 @@ app.get('/user', function(req, res) {
 
 // 회원탈퇴
 app.get('/drop', function(req, res) {
-  delete req.session.displayName;
+  //delete req.session.displayName;
+  req.logout();
   req.session.save(function(){
     res.redirect('/');
   });
